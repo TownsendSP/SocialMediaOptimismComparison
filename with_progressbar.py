@@ -104,15 +104,20 @@ class LargeCSVSentimentAnalyzer:
                     raise ValueError("CSV must contain a 'text' column")
 
                 # Use spawn context for multiprocessing
+                # Use spawn context for multiprocessing
                 ctx = get_context('spawn')
-
-                # Process sentiment for current chunk
                 with ctx.Pool(processes=self.num_workers) as pool:
-                    # Split texts into batches
-                    text_batches = np.array_split(chunk['text'], self.num_workers)
+                    # Process each chunk with progress bar
+                    for chunk in tqdm(csv_reader, total=total_lines // self.batch_size, desc="Processing CSV"):
+                        # Ensure 'text' column exists
+                        if 'text' not in chunk.columns:
+                            raise ValueError("CSV must contain a 'text' column")
 
-                    # Submit processing tasks
-                    results = pool.map(self._sentiment_worker, text_batches)
+                        # Split texts into batches
+                        text_batches = np.array_split(chunk['text'], self.num_workers)
+
+                        # Submit processing tasks
+                        results = pool.map(self._sentiment_worker, text_batches)
 
                     # Flatten results
                     all_results = [item for sublist in results for item in sublist]
